@@ -1,8 +1,8 @@
 # 说明
 
-一个完整的前后端使用protobuffer传输数据的demo
+一个完整的前后端使用protobufj传输数据的demo
 
->  Axios nodejs 使用protobuffer传输数据
+>  Axios nodejs 使用protobufj传输数据
 
 >  如果对您有帮助，您可以点右上角 "Star" 支持一下 谢谢！ ☺
 
