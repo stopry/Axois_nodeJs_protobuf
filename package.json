@@ -1,0 +1,17 @@
+{
+  "name": "vue-proto",
+  "version": "1.0.0",
+  "auther":"809746561@qq.com",
+  "description": "一个完整的前后端使用proto传输数据的示例",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "proto": "pbjs -t json-module -w commonjs -o SCRIPTS/proto/proto.js SCRIPTS/proto/*.proto"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "axios": "^0.18.0",
+    "protobufjs": "^6.8.8"
+  }
+}

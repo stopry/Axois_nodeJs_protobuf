@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="https://cdn.bootcss.com/axios/0.18.0/axios.js"></script>
+    <script src="./SCRIPTS/protobuf.js"></script>
+    <script src="./node_modules/protobufjs/dist/light/protobuf.js"></script>
+    <script src="./SCRIPTS/proto/proto.js"></script>
+</head>
+<body>
+    
+    <button>start</button>
+
+    <script>
+
+        const BASEURL = 'http://localhost:8081';
+
+        //axios配置
+        const httpService = axios.create({
+            timeout:45000,
+            method:'post',
+            headers:{
+                'X-Requested-Width':'XMLHttpRequest',
+                'Content-Type':'application/octet-stream'
+            }, 
+            //responseType:'arraybuffer',//此处不能用arraybuffer 否则会将返回的数据转化为arraybuffer
+            responseType:'json',
+            withCredentials:false
+        });
+    
+    
+
+            //request start
+
+            var protoRoot = $root;//生产的proto.js 对象
+            
+            //请求体message
+            const PBMessageRequest = protoRoot.lookup('framework.PBMessageRequest');
+            //响应体message
+            const PBMessageResponse = protoRoot.lookup('framework.PBMessageResponse');
+
+            const apiVersion = '1.0.0';
+            const token = 'my_token';
+            function getMessageTypeValue(msgType){
+                const PBMessageType = protoRoot.lookup('framework.PBMessageType');
+                const ret = PBMessageType.values[msgType];
+                return ret;
+            }
+            /**
+             * 
+             * @param {*} msgType 接口名称
+             * @param {*} requestBody 请求体参数
+             * @param {*} responseType 返回值
+             * 
+            */
+           function request(msgType,requestBody,responseType){
+               //得到api的枚举值
+               const _msgType = getMessageTypeValue(msgType);
+               //请求需要的数据
+               const reqData = {
+                   timestamp:new Date().getTime(),
+                   type:_msgType,
+                   version:apiVersion,
+                   messageData:requestBody,
+                   token:token
+               }
+               //将对象序列化成请求体实例
+               const req = PBMessageRequest.create(reqData);
+            console.log(req);
+            console.log(transformRequest(req));
+            //调用axios发起请求
+            //这里用到axios的配置项,transformRequest和transformResponse
+            //transformRequest 发起请求时,调用transformRequest方法,目的是将req转换成二进制
+            //transformResponse 对返回的数据进行处理,目的是将二进制转换成真正的json
+
+            return httpService.post(BASEURL+'/api',req,{
+                transformRequest,
+                transformResponse:transformResponseFactory(responseType)
+            }).then(({data,status})=>{
+                    //对请求做处理
+                    if(status!==200){
+                        const err = new Error('服务器异常');
+                        throw err;
+                    }
+                    console.log(data,'myData');
+                    return data;
+            },(err)=>{
+                throw err;
+            });
+
+           }
+           
+        //将数据encode成二进制,encode是protobuf.js自带的方法
+        function transformRequest(data){
+            return PBMessageRequest.encode(data).finish();
+        }
+        function isArrayBuffer(obj){
+            console.log(obj);
+            console.log(Object.prototype.toString.call((obj)));
+            return Object.prototype.toString.call(obj) === "[object Array]";
+            // return Object.prototype.toString.call(obj) === "[object ArrayBuffer]";
+        }
+        function transformResponseFactory(responseType){
+            return function transformResponse(rawResponse){
+                rawResponse = rawResponse.data;
+                //判断response是否是arraybuffer
+                if(rawResponse==null||!isArrayBuffer(rawResponse)){
+                    return rawResponse;
+                }
+                try {
+
+                    // const model = protoRoot.lookup(responseType);
+                    //     console.log(model,'model');
+                    //     let rrr = model.decode(rawResponse);
+                    //     console.log(rrr) 
+                    //     return;
+
+                    // debugger;
+                    const buf = protobuf.util.newBuffer(rawResponse);
+                    //decode响应体
+                    const decodedResponse = PBMessageResponse.decode(buf);
+                    
+                    // console.log(buf);
+                    // console.log(decodedResponse);
+
+
+                    if(decodedResponse.messageData&&responseType){
+                        const model = protoRoot.lookup(responseType);
+                        console.log(model,'model');
+                        decodedResponse.messageData = model.decode(decodedResponse.messageData);
+    
+                    }
+                    return decodedResponse;
+
+                }catch(err){
+                    return err;
+                }
+            }
+        }
+        
+        request.create = function(protoName,obj){
+            const pbConstruct = protoRoot.lookup(protoName);
+            return pbConstruct.encode(obj).finish();
+        }
+        //request start
+
+        //params 是obj类型的请求参数
+        //school.PBStudentListReq 是定义好的请求体model
+        //school.PBStudentListRsp 是定义好的响应model
+        //getStudentList是接口名称
+
+        function getStudentList(params){
+            const req = request.create('school.PBStudentListReq',params);
+            console.log(req);
+            return request('getStudentList',req,'school.PBStudent')
+        }
+
+        //后面如果再添加接口直接以此类推
+        // function getStudentById(id){
+        //     const req = ...
+        //     return request(...)
+        // }
+
+        //调用方法
+        function _getStudentList(){
+            const req = {
+                limit:20,
+                offset:0,
+            }
+
+            console.log(getStudentList(req));
+
+            getStudentList(req).then((res)=>{
+                console.log(res);
+            }).catch((err)=>{
+                console.error(err);
+            });
+        }
+    _getStudentList();
+
+    </script>
+
+</body>
+</html>
