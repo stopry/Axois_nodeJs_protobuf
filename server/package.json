@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.16.4",
+    "express": "^4.17.3",
     "google-protobuf": "^3.7.1",
     "protobufjs": "^6.8.8"
   }
